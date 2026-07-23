@@ -1,0 +1,15 @@
+{
+  "background_color": "#ffffff",
+  "description": "Lakshmipur Smart Info - All information and services of Lakshmipur district in one place. Find district, upazila, thana, union council, educational institutions, hospitals, banks, emergency services and more.",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "lakshmipur-smart-info",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "lakshmipur-smart-info",
+  "start_url": "/",
+  "theme_color": "#ffffff",
+  "share_target": {
+    "method": "GET"
+  }
+}
