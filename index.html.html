@@ -131,21 +131,18 @@
             <p class="text-sm text-slate-500 dark:text-slate-400 mt-1" id="login-subtitle">সব তথ্য ও সেবা এখন এক ঠিকানায়</p>
         </div>
         
-        <!-- Login Status -->
-        <div id="login-status" class="text-sm font-semibold mb-3 hidden"></div>
-        
         <div id="login-options" class="space-y-3">
             <button onclick="showPhoneLogin()" class="login-btn-option" id="phone-login-btn">
                 <i class="fa-regular fa-user text-emerald-600"></i>
-                <span id="login-phone-text">ফোন দিয়ে লগইন করুন</span>
+                <span id="login-phone-text">📱 ফোন দিয়ে লগইন করুন</span>
             </button>
             <button onclick="loginWithGoogle()" class="login-btn-option" id="google-login-btn">
                 <i class="fa-brands fa-google text-rose-500 text-lg"></i>
-                <span id="login-google-text">গুগল অ্যাকাউন্ট দিয়ে লগইন করুন</span>
+                <span id="login-google-text">🔑 গুগল অ্যাকাউন্ট দিয়ে লগইন করুন</span>
             </button>
             <button onclick="loginWithFacebook()" class="login-btn-option" id="fb-login-btn">
                 <i class="fa-brands fa-facebook text-blue-600 text-lg"></i>
-                <span id="login-fb-text">ফেসবুক দিয়ে লগইন করুন</span>
+                <span id="login-fb-text">🔑 ফেসবুক দিয়ে লগইন করুন</span>
             </button>
         </div>
         
@@ -283,7 +280,7 @@
     <div class="text-center py-2 text-[10px] border-t" style="color: var(--text-muted); border-color: var(--border-color); background: var(--bg-glass); backdrop-filter: blur(8px);">
         <span id="online-status"><i class="fa-solid fa-circle text-emerald-500 text-[6px] mr-1"></i> <span id="online-text">অনলাইন</span></span>
         <span class="mx-2">|</span>
-        <span>v3.1</span>
+        <span>v3.0</span>
         <span class="mx-2">|</span>
         <span id="user-status">👤 <span id="user-email-display">guest</span></span>
     </div>
@@ -369,15 +366,16 @@
 
 <script>
 // ============================================================
-// 🔥 FIREBASE CONFIG - আপনার নিজের Config বসান
+// 🔥 FIREBASE CONFIG - আপনার Config বসানো আছে
 // ============================================================
 const firebaseConfig = {
-    apiKey: "AIzaSyD-xxxxxxxxxxxxx",     // ← আপনার API Key
-    authDomain: "your-project.firebaseapp.com", // ← আপনার Project ID
-    projectId: "your-project",           // ← আপনার Project ID
-    storageBucket: "your-project.appspot.com", // ← আপনার Project ID
-    messagingSenderId: "123456789",      // ← আপনার Sender ID
-    appId: "1:123456789:web:abcdef"      // ← আপনার App ID
+  apiKey: "AIzaSyCHwgROPtMEuOcBpCTuJGh6Ku9AkxVrQ",
+  authDomain: "lakshmipur-smart-info-9edc9.firebaseapp.com",
+  projectId: "lakshmipur-smart-info-9edc9",
+  storageBucket: "lakshmipur-smart-info-9edc9.firebasestorage.app",
+  messagingSenderId: "8203969188382",
+  appId: "1:8203969188382:web:1969a5ccf5a2e73878487f",
+  measurementId: "G-H06PC261P6"
 };
 
 // ============================================================
@@ -392,7 +390,271 @@ auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
     .catch(err => console.log('Persistence error:', err));
 
 // ============================================================
-// TRANSLATIONS & DATA
+// AUTH STATE LISTENER
+// ============================================================
+auth.onAuthStateChanged(user => {
+    if (user) {
+        console.log('✅ User logged in:', user);
+        const userData = {
+            name: user.displayName || user.email || user.phoneNumber || 'User',
+            email: user.email || '',
+            phone: user.phoneNumber || '',
+            photo: user.photoURL || '',
+            uid: user.uid
+        };
+        localStorage.setItem('lakshmipur_loggedIn', 'true');
+        localStorage.setItem('lakshmipur_user', JSON.stringify(userData));
+        document.getElementById('user-email-display').textContent = userData.email || userData.phone || 'user';
+        
+        if (document.getElementById('login-page') && !document.getElementById('login-page').classList.contains('hidden')) {
+            showDashboard();
+            showToast('👋 স্বাগতম!', 'success');
+        }
+    } else {
+        console.log('❌ User logged out');
+        localStorage.removeItem('lakshmipur_loggedIn');
+        localStorage.removeItem('lakshmipur_user');
+        document.getElementById('login-page').classList.remove('hidden');
+        document.getElementById('dashboard-page').classList.add('hidden');
+    }
+});
+
+// ============================================================
+// 📱 GOOGLE LOGIN
+// ============================================================
+function loginWithGoogle() {
+    if (!navigator.onLine) {
+        showToast('❌ ইন্টারনেট প্রয়োজন!', 'error');
+        return;
+    }
+    const provider = new firebase.auth.GoogleAuthProvider();
+    provider.addScope('email');
+    provider.addScope('profile');
+    showToast('⏳ গুগল লগইন হচ্ছে...', 'info');
+    
+    auth.signInWithPopup(provider)
+        .then(result => {
+            console.log('✅ Google Login Success:', result.user);
+            showToast(`👋 স্বাগতম ${result.user.displayName || result.user.email}!`, 'success');
+        })
+        .catch(error => {
+            console.error('Google Login Error:', error);
+            if (error.code === 'auth/popup-blocked') {
+                showToast('⚠️ পপআপ ব্লক! আবার চেষ্টা করুন।', 'warning');
+            } else {
+                showToast('❌ ' + error.message, 'error');
+            }
+        });
+}
+
+// ============================================================
+// 📘 FACEBOOK LOGIN
+// ============================================================
+function loginWithFacebook() {
+    if (!navigator.onLine) {
+        showToast('❌ ইন্টারনেট প্রয়োজন!', 'error');
+        return;
+    }
+    const provider = new firebase.auth.FacebookAuthProvider();
+    provider.addScope('email');
+    provider.addScope('public_profile');
+    showToast('⏳ ফেসবুক লগইন হচ্ছে...', 'info');
+    
+    auth.signInWithPopup(provider)
+        .then(result => {
+            console.log('✅ Facebook Login Success:', result.user);
+            showToast(`👋 স্বাগতম ${result.user.displayName || result.user.email}!`, 'success');
+        })
+        .catch(error => {
+            console.error('Facebook Login Error:', error);
+            if (error.code === 'auth/popup-blocked') {
+                showToast('⚠️ পপআপ ব্লক! আবার চেষ্টা করুন।', 'warning');
+            } else {
+                showToast('❌ ' + error.message, 'error');
+            }
+        });
+}
+
+// ============================================================
+// 📱 PHONE OTP LOGIN
+// ============================================================
+let confirmationResult = null;
+let recaptchaVerifier = null;
+let otpTimer = null;
+let otpTimeLeft = 180;
+
+function showPhoneLogin() {
+    document.getElementById('login-options').classList.add('hidden');
+    document.getElementById('phone-login-form').classList.remove('hidden');
+    
+    try {
+        recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+            size: 'invisible',
+            callback: () => console.log('✅ reCAPTCHA solved')
+        });
+    } catch(e) {
+        console.log('reCAPTCHA already exists');
+    }
+}
+
+function backToLoginOptions() {
+    document.getElementById('login-options').classList.remove('hidden');
+    document.getElementById('phone-login-form').classList.add('hidden');
+    resetOTPState();
+}
+
+function resetOTPState() {
+    document.getElementById('otp-section').classList.add('hidden');
+    document.getElementById('otp-timer').classList.add('hidden');
+    document.getElementById('login-submit-btn').disabled = false;
+    document.getElementById('login-submit-btn').innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket mr-2"></i> লগইন করুন';
+    document.getElementById('otp-send-btn').disabled = false;
+    document.getElementById('otp-send-btn').textContent = 'OTP পাঠান';
+    if (otpTimer) { clearInterval(otpTimer); otpTimer = null; }
+    confirmationResult = null;
+}
+
+function sendOTP() {
+    const phoneInput = document.getElementById('login-phone-input');
+    let phone = phoneInput.value.trim();
+    
+    if (!phone) {
+        showToast('📱 ফোন নম্বর দিন!', 'error');
+        return;
+    }
+    
+    phone = phone.replace(/\D/g, '');
+    if (!phone.startsWith('880')) phone = '880' + phone;
+    if (!phone.startsWith('+')) phone = '+' + phone;
+    
+    console.log('📱 Sending OTP to:', phone);
+    
+    if (!navigator.onLine) {
+        showToast('❌ ইন্টারনেট প্রয়োজন!', 'error');
+        return;
+    }
+    
+    if (recaptchaVerifier) {
+        try { recaptchaVerifier.clear(); } catch(e) {}
+    }
+    
+    try {
+        recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', { size: 'invisible' });
+    } catch(e) {}
+    
+    document.getElementById('otp-send-btn').disabled = true;
+    document.getElementById('otp-send-btn').textContent = 'পাঠানো হচ্ছে...';
+    document.getElementById('login-submit-btn').disabled = true;
+    
+    auth.signInWithPhoneNumber(phone, recaptchaVerifier)
+        .then(result => {
+            confirmationResult = result;
+            document.getElementById('otp-section').classList.remove('hidden');
+            document.getElementById('otp-send-btn').textContent = 'OTP পাঠানো হয়েছে ✅';
+            document.getElementById('otp-send-btn').disabled = false;
+            document.getElementById('login-submit-btn').disabled = false;
+            showToast(`📱 OTP পাঠানো হয়েছে`, 'success');
+            startOTPTimer();
+            document.getElementById('login-otp-input').focus();
+        })
+        .catch(error => {
+            console.error('OTP Error:', error);
+            document.getElementById('otp-send-btn').textContent = 'পুনরায় চেষ্টা করুন';
+            document.getElementById('otp-send-btn').disabled = false;
+            document.getElementById('login-submit-btn').disabled = false;
+            
+            let msg = 'OTP পাঠাতে ব্যর্থ!';
+            if (error.code === 'auth/invalid-phone-number') {
+                msg = '❌ ভুল ফোন নম্বর! +8801712345678 ফরম্যাট ব্যবহার করুন';
+            } else if (error.code === 'auth/too-many-requests') {
+                msg = '❌ অনেকবার চেষ্টা! কিছুক্ষণ পর চেষ্টা করুন';
+            } else {
+                msg = '❌ ' + error.message;
+            }
+            showToast(msg, 'error');
+            
+            if (recaptchaVerifier) {
+                try { recaptchaVerifier.clear(); } catch(e) {}
+                recaptchaVerifier = null;
+            }
+        });
+}
+
+function startOTPTimer() {
+    document.getElementById('otp-timer').classList.remove('hidden');
+    if (otpTimer) clearInterval(otpTimer);
+    otpTimeLeft = 180;
+    
+    otpTimer = setInterval(() => {
+        otpTimeLeft--;
+        const m = Math.floor(otpTimeLeft / 60);
+        const s = otpTimeLeft % 60;
+        document.getElementById('timer-display').textContent = `${m}:${s.toString().padStart(2, '0')}`;
+        
+        if (otpTimeLeft <= 0) {
+            clearInterval(otpTimer);
+            otpTimer = null;
+            document.getElementById('timer-display').textContent = '⏱️ মেয়াদ উত্তীর্ণ!';
+            document.getElementById('otp-send-btn').textContent = 'পুনরায় পাঠান';
+            document.getElementById('otp-send-btn').disabled = false;
+            showToast('OTP মেয়াদ উত্তীর্ণ হয়েছে', 'warning');
+        }
+    }, 1000);
+}
+
+function verifyOTP() {
+    if (!confirmationResult) {
+        showToast('প্রথমে OTP পাঠান!', 'error');
+        return;
+    }
+    
+    const otp = document.getElementById('login-otp-input').value.trim();
+    if (!otp || otp.length !== 6) {
+        showToast('৬ ডিজিটের OTP দিন!', 'error');
+        return;
+    }
+    
+    document.getElementById('login-submit-btn').disabled = true;
+    document.getElementById('login-submit-btn').innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> যাচাই...';
+    
+    confirmationResult.confirm(otp)
+        .then(result => {
+            console.log('✅ Phone Login Success:', result.user);
+            if (otpTimer) { clearInterval(otpTimer); otpTimer = null; }
+            document.getElementById('login-submit-btn').disabled = false;
+            document.getElementById('login-submit-btn').innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket mr-2"></i> লগইন করুন';
+            showToast('✅ লগইন সফল!', 'success');
+        })
+        .catch(error => {
+            console.error('Verification Error:', error);
+            document.getElementById('login-submit-btn').disabled = false;
+            document.getElementById('login-submit-btn').innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket mr-2"></i> লগইন করুন';
+            
+            let msg = 'ভুল OTP!';
+            if (error.code === 'auth/invalid-verification-code') {
+                msg = '❌ ভুল OTP! আবার চেষ্টা করুন';
+            } else {
+                msg = '❌ ' + error.message;
+            }
+            showToast(msg, 'error');
+        });
+}
+
+// Auto-submit OTP
+document.getElementById('login-otp-input')?.addEventListener('input', function() {
+    this.value = this.value.replace(/\D/g, '').slice(0, 6);
+    if (this.value.length === 6 && confirmationResult) {
+        verifyOTP();
+    }
+});
+
+// Enter key
+document.getElementById('login-phone-input')?.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') sendOTP();
+});
+
+// ============================================================
+// TRANSLATIONS & DATA (Simplified)
 // ============================================================
 const TRANSLATIONS = {
     bn: {
@@ -508,51 +770,22 @@ const TRANSLATIONS = {
 };
 
 // ============================================================
-// CATEGORY DATA
+// CATEGORY DATA (Simplified)
 // ============================================================
 const CATEGORY_DATA = {
-    "আপডেট খবর": { icon: "fa-regular fa-newspaper", items: [
-        { name: "নতুন শিক্ষানীতি ঘোষণা", detail: "সরকার নতুন শিক্ষানীতি ঘোষণা করেছে।", date: "২০২৫-০১-১৫" },
-        { name: "বাজেট প্রস্তাব ২০২৫", detail: "জাতীয় বাজেটে লক্ষ্মীপুরের জন্য নতুন প্রকল্প", date: "২০২৫-০১-১৬" }
-    ]},
-    "ম্যাপ": { icon: "fa-regular fa-map", items: [
-        { name: "গুগল ম্যাপে লক্ষ্মীপুর দেখুন", detail: "লক্ষ্মীপুর জেলার সম্পূর্ণ মানচিত্র", link: "https://www.google.com/maps/place/Lakshmipur+District/" }
-    ]},
-    "জেলা তথ্য": { icon: "fa-regular fa-building", items: [
-        { name: "লক্ষ্মীপুর জেলা পরিচিতি", detail: "লক্ষ্মীপুর বাংলাদেশের একটি দক্ষিণ-পূর্বাঞ্চলীয় উপকূলীয় জেলা।" }
-    ]},
+    "আপডেট খবর": { icon: "fa-regular fa-newspaper", items: [{ name: "নতুন শিক্ষানীতি ঘোষণা", detail: "সরকার নতুন শিক্ষানীতি ঘোষণা করেছে।", date: "২০২৫-০১-১৫" }]},
+    "ম্যাপ": { icon: "fa-regular fa-map", items: [{ name: "গুগল ম্যাপে লক্ষ্মীপুর দেখুন", detail: "লক্ষ্মীপুর জেলার সম্পূর্ণ মানচিত্র", link: "https://www.google.com/maps/place/Lakshmipur+District/" }]},
+    "জেলা তথ্য": { icon: "fa-regular fa-building", items: [{ name: "লক্ষ্মীপুর জেলা পরিচিতি", detail: "লক্ষ্মীপুর বাংলাদেশের একটি দক্ষিণ-পূর্বাঞ্চলীয় উপকূলীয় জেলা।" }]},
     "জেলা": { icon: "fa-regular fa-building", items: [] },
-    "উপজেলা": { icon: "fa-regular fa-building", items: [
-        { name: "লক্ষ্মীপুর সদর উপজেলা", phone: "০১৭১৩২৪৩১৭৯", addr: "উপজেলা পরিষদ কমপ্লেক্স, লক্ষ্মীপুর সদর" }
-    ]},
-    "থানা": { icon: "fa-solid fa-shield", items: [
-        { name: "লক্ষ্মীপুর সদর থানা", phone: "০১৩২০০৬১৮০৭", addr: "থানা রোড, লক্ষ্মীপুর সদর" }
-    ]},
-    "ইউনিয়ন পরিষদ": { icon: "fa-regular fa-building", items: [
-        { name: "১নং উত্তর হামছাদী ইউনিয়ন পরিষদ", phone: "০১৭৩০০১১২২৩", addr: "উত্তর হামছাদী, লক্ষ্মীপুর সদর" }
-    ]},
-    "পোস্ট অফিস": { icon: "fa-regular fa-envelope", items: [
-        { name: "লক্ষ্মীপুর প্রধান ডাকঘর", phone: "০১৪৮৮৮৮৮৮৮", addr: "লক্ষ্মীপুর সদর" }
-    ]},
-    "গ্রাম": { icon: "fa-solid fa-house", items: [
-        { name: "কাফিলাতলী গ্রাম", phone: "০১৫২২২২২২২", addr: "উত্তর হামছাদী, লক্ষ্মীপুর সদর" }
-    ]},
-    "ওয়ার্ড": { icon: "fa-regular fa-list", items: [
-        { name: "ওয়ার্ড ০১", phone: "০১৫৫৫৫৫৫৫৫", addr: "লক্ষ্মীপুর সদর" }
-    ]},
-    "ফায়ার সার্ভিস": { icon: "fa-solid fa-fire-extinguisher", items: [
-        { name: "লক্ষ্মীপুর ফায়ার স্টেশন", phone: "০১৯০১০২১৮০৫", addr: "উত্তর স্টেশন রোড, লক্ষ্মীপুর সদর" }
-    ]},
-    "জরুরি সহায়তা": { icon: "fa-solid fa-phone", items: [
-        { name: "জাতীয় জরুরি সেবা", phone: "৯৯৯", addr: "সারা দেশ", detail: "যেকোনো জরুরি অবস্থায় কল করুন" }
-    ]},
-    "পণ্যের মূল্য": { icon: "fa-solid fa-tag", items: [
-        { name: "চাল (মিনিকেট)", price: "৳৭০ প্রতি কেজি" },
-        { name: "আলু", price: "৳৪০ প্রতি কেজি" }
-    ]},
-    "পল্লী বিদ্যুৎ": { icon: "fa-solid fa-bolt", items: [
-        { name: "পল্লী বিদ্যুৎ অফিস", phone: "০১৭১২৩৪৫৬৭", addr: "লক্ষ্মীপুর সদর" }
-    ]},
+    "উপজেলা": { icon: "fa-regular fa-building", items: [{ name: "লক্ষ্মীপুর সদর উপজেলা", phone: "০১৭১৩২৪৩১৭৯", addr: "উপজেলা পরিষদ কমপ্লেক্স, লক্ষ্মীপুর সদর" }]},
+    "থানা": { icon: "fa-solid fa-shield", items: [{ name: "লক্ষ্মীপুর সদর থানা", phone: "০১৩২০০৬১৮০৭", addr: "থানা রোড, লক্ষ্মীপুর সদর" }]},
+    "ইউনিয়ন পরিষদ": { icon: "fa-regular fa-building", items: [{ name: "১নং উত্তর হামছাদী ইউনিয়ন পরিষদ", phone: "০১৭৩০০১১২২৩", addr: "উত্তর হামছাদী, লক্ষ্মীপুর সদর" }]},
+    "পোস্ট অফিস": { icon: "fa-regular fa-envelope", items: [{ name: "লক্ষ্মীপুর প্রধান ডাকঘর", phone: "০১৪৮৮৮৮৮৮৮", addr: "লক্ষ্মীপুর সদর" }]},
+    "গ্রাম": { icon: "fa-solid fa-house", items: [{ name: "কাফিলাতলী গ্রাম", phone: "০১৫২২২২২২২", addr: "উত্তর হামছাদী, লক্ষ্মীপুর সদর" }]},
+    "ওয়ার্ড": { icon: "fa-regular fa-list", items: [{ name: "ওয়ার্ড ০১", phone: "০১৫৫৫৫৫৫৫৫", addr: "লক্ষ্মীপুর সদর" }]},
+    "ফায়ার সার্ভিস": { icon: "fa-solid fa-fire-extinguisher", items: [{ name: "লক্ষ্মীপুর ফায়ার স্টেশন", phone: "০১৯০১০২১৮০৫", addr: "উত্তর স্টেশন রোড, লক্ষ্মীপুর সদর" }]},
+    "জরুরি সহায়তা": { icon: "fa-solid fa-phone", items: [{ name: "জাতীয় জরুরি সেবা", phone: "৯৯৯", addr: "সারা দেশ", detail: "যেকোনো জরুরি অবস্থায় কল করুন" }]},
+    "পণ্যের মূল্য": { icon: "fa-solid fa-tag", items: [{ name: "চাল (মিনিকেট)", price: "৳৭০ প্রতি কেজি" }]},
     "নোট বুক": { icon: "fa-regular fa-note-sticky", items: [] },
     "পার্সোনাল অ্যাপস": { icon: "fa-solid fa-layer-group", items: [] }
 };
@@ -560,24 +793,17 @@ const CATEGORY_DATA = {
 const CATEGORY_LIST = [
     "পার্সোনাল অ্যাপস", "আপডেট খবর", "জেলা তথ্য", "ম্যাপ",
     "জেলা", "উপজেলা", "থানা", "ইউনিয়ন পরিষদ", "পোস্ট অফিস", "গ্রাম", "ওয়ার্ড",
-    "ফায়ার সার্ভিস", "জরুরি সহায়তা", "পল্লী বিদ্যুৎ", "পণ্যের মূল্য", "নোট বুক"
+    "ফায়ার সার্ভিস", "জরুরি সহায়তা",
+    "পণ্যের মূল্য", "নোট বুক"
 ];
 
-// ============================================================
-// DISTRICT DATA
-// ============================================================
 const DISTRICT_DATA = {
     upazilas: {
         'লক্ষ্মীপুর সদর': {
             thanas: {
                 'লক্ষ্মীপুর সদর থানা': {
                     unions: {
-                        'উত্তর হামছাদী ইউনিয়ন': { 
-                            wards: [
-                                { name: 'ওয়ার্ড ০১', phone: '০১৭১১১১১১১' },
-                                { name: 'ওয়ার্ড ০২', phone: '০১৭২২২২২২২' }
-                            ] 
-                        }
+                        'উত্তর হামছাদী ইউনিয়ন': { wards: [{ name: 'ওয়ার্ড ০১', phone: '০১৭১১১১১১১' }] }
                     }
                 }
             }
@@ -593,293 +819,7 @@ let currentLang = localStorage.getItem('lakshmipur_lang') || 'bn';
 let notebookNotes = JSON.parse(localStorage.getItem('notebook_notes')) || [];
 let pageHistory = [];
 let navStack = [];
-
-// ============================================================
-// AUTH STATE LISTENER - স্টেট চেক করুন
-// ============================================================
-auth.onAuthStateChanged(user => {
-    if (user) {
-        console.log('✅ User logged in:', user);
-        const userData = {
-            name: user.displayName || user.email || user.phoneNumber || 'User',
-            email: user.email || '',
-            phone: user.phoneNumber || '',
-            photo: user.photoURL || '',
-            uid: user.uid
-        };
-        localStorage.setItem('lakshmipur_loggedIn', 'true');
-        localStorage.setItem('lakshmipur_user', JSON.stringify(userData));
-        document.getElementById('user-email-display').textContent = userData.email || userData.phone || 'user';
-        
-        if (document.getElementById('login-page') && !document.getElementById('login-page').classList.contains('hidden')) {
-            showDashboard();
-            showToast('👋 স্বাগতম!', 'success');
-        }
-    } else {
-        console.log('❌ User logged out');
-        localStorage.removeItem('lakshmipur_loggedIn');
-        localStorage.removeItem('lakshmipur_user');
-        document.getElementById('login-page').classList.remove('hidden');
-        document.getElementById('dashboard-page').classList.add('hidden');
-    }
-});
-
-// ============================================================
-// 📱 GOOGLE LOGIN
-// ============================================================
-function loginWithGoogle() {
-    if (!navigator.onLine) {
-        showToast('❌ ইন্টারনেট প্রয়োজন!', 'error');
-        return;
-    }
-    
-    const provider = new firebase.auth.GoogleAuthProvider();
-    provider.addScope('email');
-    provider.addScope('profile');
-    
-    showToast('⏳ গুগল লগইন হচ্ছে...', 'info');
-    
-    auth.signInWithPopup(provider)
-        .then(result => {
-            console.log('✅ Google Login Success:', result.user);
-            showToast(`👋 স্বাগতম ${result.user.displayName || result.user.email}!`, 'success');
-        })
-        .catch(error => {
-            console.error('Google Login Error:', error);
-            if (error.code === 'auth/popup-blocked') {
-                showToast('⚠️ পপআপ ব্লক! আবার চেষ্টা করুন।', 'warning');
-            } else if (error.code === 'auth/network-request-failed') {
-                showToast('❌ ইন্টারনেট চেক করুন!', 'error');
-            } else {
-                showToast('❌ ' + error.message, 'error');
-            }
-        });
-}
-
-// ============================================================
-// 📘 FACEBOOK LOGIN
-// ============================================================
-function loginWithFacebook() {
-    if (!navigator.onLine) {
-        showToast('❌ ইন্টারনেট প্রয়োজন!', 'error');
-        return;
-    }
-    
-    const provider = new firebase.auth.FacebookAuthProvider();
-    provider.addScope('email');
-    provider.addScope('public_profile');
-    
-    showToast('⏳ ফেসবুক লগইন হচ্ছে...', 'info');
-    
-    auth.signInWithPopup(provider)
-        .then(result => {
-            console.log('✅ Facebook Login Success:', result.user);
-            showToast(`👋 স্বাগতম ${result.user.displayName || result.user.email}!`, 'success');
-        })
-        .catch(error => {
-            console.error('Facebook Login Error:', error);
-            if (error.code === 'auth/popup-blocked') {
-                showToast('⚠️ পপআপ ব্লক! আবার চেষ্টা করুন।', 'warning');
-            } else if (error.code === 'auth/network-request-failed') {
-                showToast('❌ ইন্টারনেট চেক করুন!', 'error');
-            } else {
-                showToast('❌ ' + error.message, 'error');
-            }
-        });
-}
-
-// ============================================================
-// 📱 PHONE OTP LOGIN
-// ============================================================
-let confirmationResult = null;
-let recaptchaVerifier = null;
-let otpTimer = null;
-let otpTimeLeft = 180;
-
-function showPhoneLogin() {
-    document.getElementById('login-options').classList.add('hidden');
-    document.getElementById('phone-login-form').classList.remove('hidden');
-    
-    try {
-        recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
-            size: 'invisible',
-            callback: () => {
-                console.log('✅ reCAPTCHA solved');
-            }
-        });
-    } catch(e) {
-        console.log('reCAPTCHA already exists');
-    }
-}
-
-function backToLoginOptions() {
-    document.getElementById('login-options').classList.remove('hidden');
-    document.getElementById('phone-login-form').classList.add('hidden');
-    resetOTPState();
-}
-
-function resetOTPState() {
-    document.getElementById('otp-section').classList.add('hidden');
-    document.getElementById('otp-timer').classList.add('hidden');
-    document.getElementById('login-submit-btn').disabled = false;
-    document.getElementById('login-submit-btn').innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket mr-2"></i> লগইন করুন';
-    document.getElementById('otp-send-btn').disabled = false;
-    document.getElementById('otp-send-btn').textContent = 'OTP পাঠান';
-    if (otpTimer) { clearInterval(otpTimer); otpTimer = null; }
-    confirmationResult = null;
-}
-
-function sendOTP() {
-    const phoneInput = document.getElementById('login-phone-input');
-    let phone = phoneInput.value.trim();
-    
-    if (!phone) {
-        showToast('📱 ফোন নম্বর দিন!', 'error');
-        return;
-    }
-    
-    // ফরম্যাট করুন - শুধু ডিজিট নিন
-    phone = phone.replace(/[^0-9]/g, '');
-    if (!phone.startsWith('880')) {
-        phone = '880' + phone;
-    }
-    if (!phone.startsWith('+')) {
-        phone = '+' + phone;
-    }
-    
-    console.log('📱 Sending OTP to:', phone);
-    
-    if (!navigator.onLine) {
-        showToast('❌ ইন্টারনেট প্রয়োজন!', 'error');
-        return;
-    }
-    
-    // আগের টাইমার ক্লিয়ার করুন
-    if (otpTimer) { clearInterval(otpTimer); otpTimer = null; }
-    resetOTPState();
-    
-    try {
-        recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
-            size: 'invisible'
-        });
-    } catch(e) {
-        // Already exists
-    }
-    
-    document.getElementById('otp-send-btn').disabled = true;
-    document.getElementById('otp-send-btn').textContent = 'পাঠানো হচ্ছে...';
-    document.getElementById('login-submit-btn').disabled = true;
-    
-    auth.signInWithPhoneNumber(phone, recaptchaVerifier)
-        .then(result => {
-            confirmationResult = result;
-            document.getElementById('otp-section').classList.remove('hidden');
-            document.getElementById('otp-send-btn').textContent = 'OTP পাঠানো হয়েছে ✅';
-            document.getElementById('otp-send-btn').disabled = false;
-            document.getElementById('login-submit-btn').disabled = false;
-            showToast(`📱 OTP পাঠানো হয়েছে`, 'success');
-            startOTPTimer();
-            document.getElementById('login-otp-input').focus();
-        })
-        .catch(error => {
-            console.error('OTP Error:', error);
-            document.getElementById('otp-send-btn').textContent = 'পুনরায় চেষ্টা করুন';
-            document.getElementById('otp-send-btn').disabled = false;
-            document.getElementById('login-submit-btn').disabled = false;
-            
-            let msg = 'OTP পাঠাতে ব্যর্থ!';
-            if (error.code === 'auth/invalid-phone-number') {
-                msg = '❌ ভুল ফোন নম্বর! সঠিক নম্বর দিন';
-            } else if (error.code === 'auth/too-many-requests') {
-                msg = '❌ অনেকবার চেষ্টা! কিছুক্ষণ পর চেষ্টা করুন';
-            } else if (error.code === 'auth/network-request-failed') {
-                msg = '❌ ইন্টারনেট চেক করুন!';
-            } else {
-                msg = '❌ ' + error.message;
-            }
-            showToast(msg, 'error');
-            
-            if (recaptchaVerifier) {
-                try { recaptchaVerifier.clear(); } catch(e) {}
-                recaptchaVerifier = null;
-            }
-        });
-}
-
-function startOTPTimer() {
-    document.getElementById('otp-timer').classList.remove('hidden');
-    if (otpTimer) clearInterval(otpTimer);
-    otpTimeLeft = 180;
-    
-    otpTimer = setInterval(() => {
-        otpTimeLeft--;
-        const m = Math.floor(otpTimeLeft / 60);
-        const s = otpTimeLeft % 60;
-        document.getElementById('timer-display').textContent = `${m}:${s.toString().padStart(2, '0')}`;
-        
-        if (otpTimeLeft <= 0) {
-            clearInterval(otpTimer);
-            otpTimer = null;
-            document.getElementById('timer-display').textContent = '⏱️ মেয়াদ উত্তীর্ণ!';
-            document.getElementById('otp-send-btn').textContent = 'পুনরায় পাঠান';
-            document.getElementById('otp-send-btn').disabled = false;
-            showToast('OTP মেয়াদ উত্তীর্ণ হয়েছে', 'warning');
-        }
-    }, 1000);
-}
-
-function verifyOTP() {
-    if (!confirmationResult) {
-        showToast('প্রথমে OTP পাঠান!', 'error');
-        return;
-    }
-    
-    const otp = document.getElementById('login-otp-input').value.trim();
-    if (!otp || otp.length !== 6) {
-        showToast('৬ ডিজিটের OTP দিন!', 'error');
-        return;
-    }
-    
-    document.getElementById('login-submit-btn').disabled = true;
-    document.getElementById('login-submit-btn').innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> যাচাই...';
-    
-    confirmationResult.confirm(otp)
-        .then(result => {
-            console.log('✅ Phone Login Success:', result.user);
-            if (otpTimer) { clearInterval(otpTimer); otpTimer = null; }
-            document.getElementById('login-submit-btn').disabled = false;
-            document.getElementById('login-submit-btn').innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket mr-2"></i> লগইন করুন';
-            showToast('✅ লগইন সফল!', 'success');
-        })
-        .catch(error => {
-            console.error('Verification Error:', error);
-            document.getElementById('login-submit-btn').disabled = false;
-            document.getElementById('login-submit-btn').innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket mr-2"></i> লগইন করুন';
-            
-            let msg = 'ভুল OTP!';
-            if (error.code === 'auth/invalid-verification-code') {
-                msg = '❌ ভুল OTP! আবার চেষ্টা করুন';
-            } else if (error.code === 'auth/too-many-requests') {
-                msg = '❌ অনেকবার চেষ্টা! কিছুক্ষণ পর চেষ্টা করুন';
-            } else {
-                msg = '❌ ' + error.message;
-            }
-            showToast(msg, 'error');
-        });
-}
-
-// Auto-submit OTP
-document.getElementById('login-otp-input')?.addEventListener('input', function() {
-    this.value = this.value.replace(/\D/g, '').slice(0, 6);
-    if (this.value.length === 6 && confirmationResult) {
-        verifyOTP();
-    }
-});
-
-// Enter key
-document.getElementById('login-phone-input')?.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') sendOTP();
-});
+let localPassword = localStorage.getItem('lakshmipur_password') || '';
 
 // ============================================================
 // THEME & LANGUAGE
@@ -928,9 +868,9 @@ function updateUIText() {
     document.getElementById('app-title-text').textContent = t;
     document.getElementById('login-title').textContent = t;
     document.getElementById('login-subtitle').textContent = currentLang === 'bn' ? 'সব তথ্য ও সেবা এখন এক ঠিকানায়' : 'All info & services in one place';
-    document.getElementById('login-phone-text').textContent = currentLang === 'bn' ? 'ফোন দিয়ে লগইন করুন' : 'Login with Phone';
-    document.getElementById('login-fb-text').textContent = currentLang === 'bn' ? 'ফেসবুক দিয়ে লগইন করুন' : 'Continue with Facebook';
-    document.getElementById('login-google-text').textContent = currentLang === 'bn' ? 'গুগল অ্যাকাউন্ট দিয়ে লগইন করুন' : 'Continue with Google';
+    document.getElementById('login-phone-text').textContent = currentLang === 'bn' ? '📱 ফোন দিয়ে লগইন করুন' : '📱 Login with Phone';
+    document.getElementById('login-fb-text').textContent = currentLang === 'bn' ? '🔑 ফেসবুক দিয়ে লগইন করুন' : '🔑 Continue with Facebook';
+    document.getElementById('login-google-text').textContent = currentLang === 'bn' ? '🔑 গুগল অ্যাকাউন্ট দিয়ে লগইন করুন' : '🔑 Continue with Google';
     document.getElementById('phone-label').innerHTML = currentLang === 'bn' ? '<i class="fa-regular fa-phone mr-1"></i> ফোন নম্বর' : '<i class="fa-regular fa-phone mr-1"></i> Phone Number';
     document.getElementById('otp-label').innerHTML = currentLang === 'bn' ? '<i class="fa-solid fa-key mr-1"></i> OTP (৬ ডিজিট)' : '<i class="fa-solid fa-key mr-1"></i> OTP (6 digits)';
     document.getElementById('login-submit-btn').innerHTML = `<i class="fa-solid fa-arrow-right-to-bracket mr-2"></i> ${currentLang === 'bn' ? 'লগইন করুন' : 'Login'}`;
@@ -1228,9 +1168,7 @@ function showPersonalApps() {
     details.innerHTML = html;
 }
 
-// ============================================================
-// CALCULATOR
-// ============================================================
+// Calculator
 let calcDisplayValue = '0', calcFirstNumber = null, calcOperator = null, calcWaitingForSecond = false;
 
 function openCalculator() {
@@ -1319,9 +1257,7 @@ function calculate(a, b, operator) {
 function calcClear() { calcDisplayValue = '0'; calcFirstNumber = null; calcOperator = null; calcWaitingForSecond = false; updateCalcDisplay(); }
 function calcBackspace() { if (calcDisplayValue.length > 1) calcDisplayValue = calcDisplayValue.slice(0, -1); else calcDisplayValue = '0'; updateCalcDisplay(); }
 
-// ============================================================
-// CALENDAR
-// ============================================================
+// Calendar
 function openCalendar() {
     const details = document.getElementById('details-view');
     const now = new Date();
@@ -1350,9 +1286,7 @@ function openCalendar() {
     details.innerHTML = html;
 }
 
-// ============================================================
-// CURRENCY CONVERTER
-// ============================================================
+// Currency Converter
 const EXCHANGE_RATES = { BDT: 1, USD: 120.50, EUR: 130.75, GBP: 152.30, INR: 1.45, SAR: 32.10, AED: 32.80, MYR: 25.60 };
 
 function openCurrency() {
@@ -1403,9 +1337,7 @@ function convertCurrency() {
     result.textContent = `${amount} ${from} = ${converted.toFixed(2)} ${to}`;
 }
 
-// ============================================================
-// COMPASS
-// ============================================================
+// Compass
 let compassActive = false;
 
 function openCompass() {
@@ -1437,22 +1369,12 @@ function openCompass() {
 function startCompass() {
     if (compassActive) return;
     compassActive = true;
-    
     if (window.DeviceOrientationEvent) {
         if (typeof DeviceOrientationEvent.requestPermission === 'function') {
             DeviceOrientationEvent.requestPermission().then(response => {
-                if (response === 'granted') { 
-                    window.addEventListener('deviceorientation', handleCompass); 
-                    showToast('🧭 কম্পাস চালু হয়েছে', 'info');
-                } else { 
-                    showToast('কম্পাস ব্যবহারের অনুমতি প্রয়োজন!', 'error'); 
-                    compassActive = false;
-                    startCompassDemo();
-                }
-            }).catch(() => { 
-                compassActive = false;
-                startCompassDemo();
-            });
+                if (response === 'granted') { window.addEventListener('deviceorientation', handleCompass); showToast('🧭 কম্পাস চালু হয়েছে', 'info'); }
+                else { showToast('কম্পাস ব্যবহারের অনুমতি প্রয়োজন!', 'error'); compassActive = false; }
+            }).catch(() => { compassActive = false; });
         } else {
             window.addEventListener('deviceorientation', handleCompass);
             showToast('🧭 কম্পাস চালু হয়েছে', 'info');
@@ -1460,25 +1382,21 @@ function startCompass() {
     } else {
         showToast('আপনার ডিভাইসে কম্পাস সাপোর্ট নেই', 'error');
         compassActive = false;
-        startCompassDemo();
+        let demoAngle = 0;
+        setInterval(() => {
+            demoAngle = (demoAngle + 5) % 360;
+            const needle = document.getElementById('compass-needle');
+            const direction = document.getElementById('compass-direction');
+            if (needle && direction) {
+                needle.style.transform = `rotate(${demoAngle}deg)`;
+                const dirs = currentLang === 'bn' ?
+                    ['উত্তর (N)', 'উত্তর-পূর্ব (NE)', 'পূর্ব (E)', 'দক্ষিণ-পূর্ব (SE)', 'দক্ষিণ (S)', 'দক্ষিণ-পশ্চিম (SW)', 'পশ্চিম (W)', 'উত্তর-পশ্চিম (NW)'] :
+                    ['North (N)', 'North-East (NE)', 'East (E)', 'South-East (SE)', 'South (S)', 'South-West (SW)', 'West (W)', 'North-West (NW)'];
+                const idx = Math.round(demoAngle / 45) % 8;
+                direction.textContent = dirs[idx];
+            }
+        }, 100);
     }
-}
-
-function startCompassDemo() {
-    let demoAngle = 0;
-    setInterval(() => {
-        demoAngle = (demoAngle + 3) % 360;
-        const needle = document.getElementById('compass-needle');
-        const direction = document.getElementById('compass-direction');
-        if (needle && direction) {
-            needle.style.transform = `rotate(${demoAngle}deg)`;
-            const dirs = currentLang === 'bn' ?
-                ['উত্তর (N)', 'উত্তর-পূর্ব (NE)', 'পূর্ব (E)', 'দক্ষিণ-পূর্ব (SE)', 'দক্ষিণ (S)', 'দক্ষিণ-পশ্চিম (SW)', 'পশ্চিম (W)', 'উত্তর-পশ্চিম (NW)'] :
-                ['North (N)', 'North-East (NE)', 'East (E)', 'South-East (SE)', 'South (S)', 'South-West (SW)', 'West (W)', 'North-West (NW)'];
-            const idx = Math.round(demoAngle / 45) % 8;
-            direction.textContent = dirs[idx];
-        }
-    }, 100);
 }
 
 function handleCompass(event) {
@@ -1496,9 +1414,7 @@ function handleCompass(event) {
     }
 }
 
-// ============================================================
-// NOTEBOOK
-// ============================================================
+// Notebook
 function showNotebook() {
     const grid = document.getElementById('category-grid');
     const details = document.getElementById('details-view');
@@ -1713,7 +1629,7 @@ function editField(field) {
 }
 
 // ============================================================
-// PASSWORD CHANGE - Firebase Update
+// PASSWORD CHANGE
 // ============================================================
 function showPasswordChange() {
     document.getElementById('settings-menu').classList.add('hidden');
@@ -1733,64 +1649,19 @@ function updatePassword() {
     const confirmPwd = document.getElementById('confirm-pwd').value.trim();
     document.getElementById('pwd-error').style.display = 'none';
     document.getElementById('pwd-success').style.display = 'none';
-    
-    const user = auth.currentUser;
-    if (!user) {
-        document.getElementById('pwd-error').textContent = currentLang === 'bn' ? 'আপনি লগইন নেই!' : 'You are not logged in!';
-        document.getElementById('pwd-error').style.display = 'block';
-        return;
-    }
-    
-    if (!newPwd || newPwd.length < 6) {
-        document.getElementById('pwd-error').textContent = currentLang === 'bn' ? 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে!' : 'Password must be at least 6 characters!';
-        document.getElementById('pwd-error').style.display = 'block';
-        return;
-    }
-    
-    if (newPwd !== confirmPwd) {
-        document.getElementById('pwd-error').textContent = currentLang === 'bn' ? 'নতুন পাসওয়ার্ড মিলছে না!' : 'New password does not match!';
-        document.getElementById('pwd-error').style.display = 'block';
-        return;
-    }
-    
-    // Re-authenticate user first
-    const credential = firebase.auth.EmailAuthProvider.credential(user.email, oldPwd);
-    
-    user.reauthenticateWithCredential(credential)
-        .then(() => {
-            // Now update password
-            return user.updatePassword(newPwd);
-        })
-        .then(() => {
-            document.getElementById('pwd-success').style.display = 'block';
-            setTimeout(() => { 
-                closePasswordChange(); 
-                showToast('✅ পাসওয়ার্ড পরিবর্তন করা হয়েছে!', 'success'); 
-            }, 1500);
-        })
-        .catch(error => {
-            console.error('Password change error:', error);
-            document.getElementById('pwd-error').textContent = error.code === 'auth/wrong-password' ? 
-                (currentLang === 'bn' ? '❌ বর্তমান পাসওয়ার্ড ভুল!' : '❌ Current password is wrong!') :
-                '❌ ' + error.message;
-            document.getElementById('pwd-error').style.display = 'block';
-        });
+    if (!oldPwd) { document.getElementById('pwd-error').textContent = currentLang === 'bn' ? 'বর্তমান পাসওয়ার্ড দিন!' : 'Enter current password!'; document.getElementById('pwd-error').style.display = 'block'; return; }
+    if (oldPwd !== localPassword) { document.getElementById('pwd-error').textContent = currentLang === 'bn' ? '❌ ভুল পাসওয়ার্ড!' : '❌ Wrong password!'; document.getElementById('pwd-error').style.display = 'block'; return; }
+    if (!newPwd || newPwd.length !== 4 || !/^\d{4}$/.test(newPwd)) { document.getElementById('pwd-error').textContent = currentLang === 'bn' ? 'নতুন পাসওয়ার্ড ৪ ডিজিটের হতে হবে!' : 'New password must be 4 digits!'; document.getElementById('pwd-error').style.display = 'block'; return; }
+    if (newPwd !== confirmPwd) { document.getElementById('pwd-error').textContent = currentLang === 'bn' ? 'নতুন পাসওয়ার্ড মিলছে না!' : 'New password does not match!'; document.getElementById('pwd-error').style.display = 'block'; return; }
+    localPassword = newPwd;
+    localStorage.setItem('lakshmipur_password', newPwd);
+    document.getElementById('pwd-success').style.display = 'block';
+    setTimeout(() => { closePasswordChange(); showToast('✅ পাসওয়ার্ড পরিবর্তন করা হয়েছে!', 'success'); }, 1500);
 }
 
 function forgotPassword() {
-    const user = auth.currentUser;
-    if (user && user.email) {
-        auth.sendPasswordResetEmail(user.email)
-            .then(() => {
-                closePasswordChange();
-                showToast(currentLang === 'bn' ? '📧 পাসওয়ার্ড রিসেট লিংক ইমেইলে পাঠানো হয়েছে!' : '📧 Password reset link sent to your email!', 'success');
-            })
-            .catch(error => {
-                showToast('❌ ' + error.message, 'error');
-            });
-    } else {
-        showToast(currentLang === 'bn' ? 'ইমেইল প্রদান করা হয়নি!' : 'Email not provided!', 'error');
-    }
+    closePasswordChange();
+    showToast(currentLang === 'bn' ? '📱 পাসওয়ার্ড রিসেট করতে ফোন/ইমেইল চেক করুন।' : '📱 Check phone/email to reset password.', 'info');
 }
 
 // ============================================================
@@ -1861,9 +1732,6 @@ function registerServiceWorker() {
     }
 }
 
-// ============================================================
-// AUTO LOGIN CHECK - auth.onAuthStateChanged handles this
-// ============================================================
 console.log('🚀 App loaded. Firebase Auth is watching...');
 console.log('📱 Phone Login: sendOTP()');
 console.log('🔑 Google Login: loginWithGoogle()');
@@ -1912,7 +1780,6 @@ window.updatePassword = updatePassword;
 window.forgotPassword = forgotPassword;
 window.uploadPhoto = uploadPhoto;
 window.editField = editField;
-
 </script>
 </body>
 </html>
